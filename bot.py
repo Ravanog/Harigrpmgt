@@ -180,6 +180,48 @@ async def elite_security_pipeline(client: Client, message: Message):
         except Exception as e:
             print(f"Error executing security rule: {e}")
 
+
+# --- Security Pipeline (Deletes All User Messages / Movie Names) ---
+@app.on_message(filters.group & ~filters.service, group=1)
+async def elite_security_pipeline(client: Client, message: Message):
+    if not message.from_user:
+        return
+
+    chat_id = message.chat.id
+    user_id = message.from_user.id
+
+    # Allow admins to send messages normally
+    if await is_admin(client, chat_id, user_id):
+        return
+
+    punishment_action = get_chat_setting(chat_id, "action", "restrict")
+
+    try:
+        # Delete the user's message (movie name, chat text, etc.)
+        await message.delete()
+
+        # Optional: Mute or ban the user for sending messages
+        if punishment_action == "ban":
+            await client.ban_chat_member(chat_id, user_id)
+            action_text = "Permanently Banned ❌"
+        else:
+            await client.restrict_chat_member(
+                chat_id=chat_id,
+                user_id=user_id,
+                permissions=ChatPermissions(can_send_messages=False)
+            )
+            action_text = "Muted / Restricted 🔒"
+
+        # Notify why the message was removed
+        await message.reply_text(
+            f"🛡️ **SECURITY ENFORCEMENT**\n\n"
+            f"👤 **User:** {message.from_user.mention}\n"
+            f"⚠️ **Violation:** General chatting/movie requests are not allowed in this group.\n"
+            f"⚡ **Action:** Message deleted & {action_text}"
+        )
+    except Exception as e:
+        print(f"Error executing security rule: {e}")
+        
 # Admin Settings Command Panel
 @app.on_message(filters.command("settings") & filters.group)
 async def settings_command(client: Client, message: Message):
