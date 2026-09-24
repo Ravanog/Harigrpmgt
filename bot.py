@@ -4,6 +4,7 @@ import json
 import time
 import asyncio
 import threading
+from datetime import datetime, timedelta
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, ChatPermissions
@@ -151,17 +152,17 @@ async def elite_security_pipeline(client: Client, message: Message):
         except Exception as e:
             print(f"Error executing security rule: {e}")
 
-    # Handle Movie Search Queries (5-sec restriction + invite prompt)
+    # Handle Movie Search Queries (5-sec restriction using datetime + invite prompt)
     elif is_movie_search:
         try:
             await message.delete()
 
-            # Temporarily restrict user for 5 seconds
+            # Temporarily restrict user for 5 seconds using a datetime object
             await client.restrict_chat_member(
                 chat_id=chat_id,
                 user_id=user_id,
                 permissions=ChatPermissions(can_send_messages=False),
-                until_date=int(time.time()) + 5
+                until_date=datetime.now() + timedelta(seconds=5)
             )
 
             keyboard = InlineKeyboardMarkup([
