@@ -10,6 +10,8 @@ BOT_TOKEN = os.environ.get("BOT_TOKEN", "8932762816:AAHH4bYkyQ1a-Ujcbgsl5isu026G
 
 # Global Bot Admins / Owners (Put your Telegram User ID(s) here)
 ADMINS = [int(x) for x in os.environ.get("ADMINS", "8363515444").split(",") if x.strip().isdigit()]
+CHANNEL_LINK_1 = "https://t.me/+Fey8agWUFMBkNDk1"
+CHANNEL_LINK_2 = "https://t.me/hari_moviez"
 
 # Start Message Picture (Direct Image URL)
 START_PIC = "https://files.catbox.moe/9oc9ai.jpg"
