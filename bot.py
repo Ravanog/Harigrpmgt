@@ -3,10 +3,34 @@ import re
 import json
 import time
 import asyncio
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, ChatPermissions
 from config import API_ID, API_HASH, BOT_TOKEN, REQUIRED_INVITES
 from start import register_start_handlers
+
+# --- Health Check Server for Cloud Port 8080 ---
+class HealthCheckHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Elite Group Guard Bot is alive and running!")
+    
+    def log_message(self, format, *args):
+        # Suppress standard HTTP access logs to keep terminal clean
+        return
+
+def run_health_server():
+    port = int(os.environ.get("PORT", 8080))
+    server_address = ('0.0.0.0', port)
+    httpd = HTTPServer(server_address, HealthCheckHandler)
+    print(f"Health-check server listening on port {port}...")
+    httpd.serve_forever()
+
+# Start the health check server in a background daemon thread
+threading.Thread(target=run_health_server, daemon=True).start()
+# ---------------------------------------------
 
 app = Client(
     "EliteGroupManagerBot",
