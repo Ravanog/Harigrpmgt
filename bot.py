@@ -7,7 +7,7 @@ import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, ChatPermissions
-from config import API_ID, API_HASH, BOT_TOKEN, REQUIRED_INVITES
+from config import API_ID, API_HASH, BOT_TOKEN, REQUIRED_INVITES, ADMINS
 from start import register_start_handlers
 
 # --- Health Check Server for Cloud Port 8080 ---
@@ -66,6 +66,16 @@ def get_chat_setting(chat_id: int, key: str, default=True):
         save_settings(group_settings)
     return group_settings[str_id].get(key, default)
 
+async def is_admin(client: Client, chat_id: int, user_id: int):
+    """Returns True if the user is a global bot admin or a group administrator/creator."""
+    if user_id in ADMINS:
+        return True
+    try:
+        member = await client.get_chat_member(chat_id, user_id)
+        return member.status in ["administrator", "creator"]
+    except Exception:
+        return False
+
 URL_REGEX = r"(https?://\S+|www\.\S+|t\.me/\S+|telegram\.dog/\S+|bit\.ly/\S+|whatsapp\.com/\S+|chat\.whatsapp\.com/\S+|discord\.gg/\S+|instagram\.com/\S+)"
 SPAM_KEYWORDS = [
     "xxx", "hardcore", "homemade", "cheating", "massage", 
@@ -80,13 +90,9 @@ async def elite_security_pipeline(client: Client, message: Message):
     chat_id = message.chat.id
     user_id = message.from_user.id
 
-    # Exemption for Administrators and Creators
-    try:
-        member = await client.get_chat_member(chat_id, user_id)
-        if member.status in ["administrator", "creator"]:
-            return
-    except Exception:
-        pass
+    # Exemption for Administrators and Creators (Global or Local)
+    if await is_admin(client, chat_id, user_id):
+        return
 
     raw_text = message.text or message.caption or ""
     text_content = raw_text.lower()
@@ -183,15 +189,13 @@ async def elite_security_pipeline(client: Client, message: Message):
 # Admin Settings Command Panel
 @app.on_message(filters.command("settings") & filters.group)
 async def settings_command(client: Client, message: Message):
-    try:
-        member = await client.get_chat_member(message.chat.id, message.from_user.id)
-        if member.status not in ["administrator", "creator"]:
-            await message.reply_text("❌ Only group administrators can access the security settings panel.")
-            return
-    except Exception:
+    chat_id = message.chat.id
+    user_id = message.from_user.id
+
+    if not await is_admin(client, chat_id, user_id):
+        await message.reply_text("❌ Only group administrators can access the security settings panel.")
         return
 
-    chat_id = message.chat.id
     kb = get_settings_keyboard(chat_id)
     await message.reply_text(
         "⚙️ **Advanced Group Security Control Panel**\n\n"
@@ -222,13 +226,10 @@ async def callback_security_handler(client: Client, callback_query: CallbackQuer
     parts = data.split("_")
     action_type = parts[0] + "_" + parts[1] if parts[0] == "toggle" else parts[0]
     chat_id = int(parts[-1])
+    user_id = callback_query.from_user.id
 
-    try:
-        member = await client.get_chat_member(chat_id, callback_query.from_user.id)
-        if member.status not in ["administrator", "creator"]:
-            await callback_query.answer("❌ Admins only!", show_alert=True)
-            return
-    except Exception:
+    if not await is_admin(client, chat_id, user_id):
+        await callback_query.answer("❌ Admins only!", show_alert=True)
         return
 
     str_id = str(chat_id)
