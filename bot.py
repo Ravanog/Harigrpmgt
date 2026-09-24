@@ -18,7 +18,6 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"Elite Group Guard Bot is alive and running!")
     
     def log_message(self, format, *args):
-        # Suppress standard HTTP access logs to keep terminal clean
         return
 
 def run_health_server():
@@ -28,7 +27,6 @@ def run_health_server():
     print(f"Health-check server listening on port {port}...")
     httpd.serve_forever()
 
-# Start the health check server in a background daemon thread
 threading.Thread(target=run_health_server, daemon=True).start()
 # ---------------------------------------------
 
@@ -39,7 +37,6 @@ app = Client(
     bot_token=BOT_TOKEN
 )
 
-# Register start module handlers
 register_start_handlers(app)
 
 SETTINGS_FILE = "group_settings.json"
@@ -67,7 +64,6 @@ def get_chat_setting(chat_id: int, key: str, default=True):
     return group_settings[str_id].get(key, default)
 
 async def is_admin(client: Client, chat_id: int, user_id: int):
-    """Returns True if the user is a global bot admin or a group administrator/creator."""
     if user_id in ADMINS:
         return True
     try:
@@ -90,7 +86,6 @@ async def elite_security_pipeline(client: Client, message: Message):
     chat_id = message.chat.id
     user_id = message.from_user.id
 
-    # Exemption for Administrators and Creators (Global or Local)
     if await is_admin(client, chat_id, user_id):
         return
 
@@ -127,11 +122,13 @@ async def elite_security_pipeline(client: Client, message: Message):
         if matched_keywords:
             violations.append(f"Forbidden Keywords Detected ({', '.join(matched_keywords)})")
 
-    # 4. Movie Search / Plain Word Query Check
+    # 4. Movie Search Check (Triggers if text has 4 or fewer words and isn't a command)
     if not violations and len(raw_text.split()) <= 4 and not raw_text.startswith("/"):
         is_movie_search = True
 
-    # Handle Hard Violations (Links / Spam / Adult Leaks)
+    print(f"DEBUG: Message from {user_id} | Text: '{raw_text}' | Violations: {violations} | Movie Search: {is_movie_search}")
+
+    # Handle Hard Violations
     if violations:
         try:
             await message.delete()
@@ -156,18 +153,10 @@ async def elite_security_pipeline(client: Client, message: Message):
         except Exception as e:
             print(f"Error executing security rule: {e}")
 
-    # Handle Movie Search Queries (5-sec restriction + invite prompt)
+    # Handle Movie Search Queries (Prompt only, no restriction)
     elif is_movie_search:
         try:
             await message.delete()
-
-            # Temporarily restrict user for 5 seconds
-            await client.restrict_chat_member(
-                chat_id=chat_id,
-                user_id=user_id,
-                permissions=ChatPermissions(can_send_messages=False),
-                until_date=int(time.time()) + 5
-            )
 
             keyboard = InlineKeyboardMarkup([
                 [InlineKeyboardButton(f"➕ Add {REQUIRED_INVITES} Members to Search", url=f"https://t.me/{client.me.username}?startgroup=true")]
@@ -175,16 +164,15 @@ async def elite_security_pipeline(client: Client, message: Message):
 
             warning_msg = await message.reply_text(
                 f"⚠️ **Hey {message.from_user.mention}!**\n\n"
-                f"To search for movies or post queries, you must first add **{REQUIRED_INVITES} members** to this group.\n"
-                f"🔒 *Your messaging is temporarily restricted for 5 seconds.*",
+                f"To search for movies or post queries, you must first add **{REQUIRED_INVITES} members** to this group.",
                 reply_markup=keyboard
             )
 
-            await asyncio.sleep(8)
+            await asyncio.sleep(10)
             await warning_msg.delete()
 
         except Exception as e:
-            print(f"Error handling movie search restriction: {e}")
+            print(f"Error handling movie search prompt: {e}")
 
 # Admin Settings Command Panel
 @app.on_message(filters.command("settings") & filters.group)
