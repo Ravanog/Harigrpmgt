@@ -126,8 +126,6 @@ async def elite_security_pipeline(client: Client, message: Message):
     if not violations and len(raw_text.split()) <= 4 and not raw_text.startswith("/"):
         is_movie_search = True
 
-    print(f"DEBUG: Message from {user_id} | Text: '{raw_text}' | Violations: {violations} | Movie Search: {is_movie_search}")
-
     # Handle Hard Violations
     if violations:
         try:
@@ -153,10 +151,18 @@ async def elite_security_pipeline(client: Client, message: Message):
         except Exception as e:
             print(f"Error executing security rule: {e}")
 
-    # Handle Movie Search Queries (Prompt only, no restriction)
+    # Handle Movie Search Queries (5-sec restriction + invite prompt)
     elif is_movie_search:
         try:
             await message.delete()
+
+            # Temporarily restrict user for 5 seconds
+            await client.restrict_chat_member(
+                chat_id=chat_id,
+                user_id=user_id,
+                permissions=ChatPermissions(can_send_messages=False),
+                until_date=int(time.time()) + 5
+            )
 
             keyboard = InlineKeyboardMarkup([
                 [InlineKeyboardButton(f"➕ Add {REQUIRED_INVITES} Members to Search", url=f"https://t.me/{client.me.username}?startgroup=true")]
@@ -164,15 +170,16 @@ async def elite_security_pipeline(client: Client, message: Message):
 
             warning_msg = await message.reply_text(
                 f"⚠️ **Hey {message.from_user.mention}!**\n\n"
-                f"To search for movies or post queries, you must first add **{REQUIRED_INVITES} members** to this group.",
+                f"To search for movies or post queries, you must first add **{REQUIRED_INVITES} members** to this group.\n"
+                f"🔒 *Your messaging is temporarily restricted for 5 seconds.*",
                 reply_markup=keyboard
             )
 
-            await asyncio.sleep(10)
+            await asyncio.sleep(8)
             await warning_msg.delete()
 
         except Exception as e:
-            print(f"Error handling movie search prompt: {e}")
+            print(f"Error handling movie search restriction: {e}")
 
 # Admin Settings Command Panel
 @app.on_message(filters.command("settings") & filters.group)
