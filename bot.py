@@ -1,14 +1,11 @@
 import os
 import re
 import json
-import time
-import asyncio
 import threading
-from datetime import datetime, timedelta
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, ChatPermissions
-from config import API_ID, API_HASH, BOT_TOKEN, REQUIRED_INVITES, ADMINS
+from config import API_ID, API_HASH, BOT_TOKEN, ADMINS, CHANNEL_LINK_1, CHANNEL_LINK_2, WELCOME_TEXT, GROUP_RULES
 from start import register_start_handlers
 
 # --- Health Check Server for Cloud Port 8080 ---
@@ -79,6 +76,42 @@ SPAM_KEYWORDS = [
     "daily leak", "nsfw", "18+", "hot video", "sex chat", "adult video", "onlyfans"
 ]
 
+# --- Welcome Message Handler with Config Text & Dual Channel Buttons ---
+@app.on_message(filters.new_chat_members & filters.group)
+async def welcome_new_members(client: Client, message: Message):
+    for new_user in message.new_chat_members:
+        if new_user.id == client.me.id:
+            continue
+        
+        keyboard = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("📢 Join Channel 1", url=CHANNEL_LINK_1),
+                InlineKeyboardButton("📢 Join Channel 2", url=CHANNEL_LINK_2)
+            ]
+        ])
+        
+        formatted_welcome = WELCOME_TEXT.format(
+            user=new_user.mention,
+            group=message.chat.title
+        )
+        
+        try:
+            await message.reply_text(
+                formatted_welcome,
+                reply_markup=keyboard
+            )
+        except Exception as e:
+            print(f"Error sending welcome message: {e}")
+
+# --- Group Rules Command ---
+@app.on_message(filters.command("rules") & filters.group)
+async def rules_command(client: Client, message: Message):
+    try:
+        await message.reply_text(GROUP_RULES)
+    except Exception as e:
+        print(f"Error sending rules: {e}")
+
+# --- Security Pipeline (Anti-Link, Anti-Forward, Anti-Spam) ---
 @app.on_message(filters.group & ~filters.service, group=1)
 async def elite_security_pipeline(client: Client, message: Message):
     if not message.from_user:
@@ -99,7 +132,6 @@ async def elite_security_pipeline(client: Client, message: Message):
     punishment_action = get_chat_setting(chat_id, "action", "restrict")
 
     violations = []
-    is_movie_search = False
 
     # 1. Anti-Link Check
     if anti_link:
@@ -123,11 +155,7 @@ async def elite_security_pipeline(client: Client, message: Message):
         if matched_keywords:
             violations.append(f"Forbidden Keywords Detected ({', '.join(matched_keywords)})")
 
-    # 4. Movie Search Check (Triggers if text has 4 or fewer words and isn't a command)
-    if not violations and len(raw_text.split()) <= 4 and not raw_text.startswith("/"):
-        is_movie_search = True
-
-    # Handle Hard Violations
+    # Handle Violations (Links / Forwards / Spam)
     if violations:
         try:
             await message.delete()
@@ -151,36 +179,6 @@ async def elite_security_pipeline(client: Client, message: Message):
             )
         except Exception as e:
             print(f"Error executing security rule: {e}")
-
-    # Handle Movie Search Queries (5-sec restriction using datetime + invite prompt)
-    elif is_movie_search:
-        try:
-            await message.delete()
-
-            # Temporarily restrict user for 5 seconds using a datetime object
-            await client.restrict_chat_member(
-                chat_id=chat_id,
-                user_id=user_id,
-                permissions=ChatPermissions(can_send_messages=False),
-                until_date=datetime.now() + timedelta(seconds=5)
-            )
-
-            keyboard = InlineKeyboardMarkup([
-                [InlineKeyboardButton(f"➕ Add {REQUIRED_INVITES} Members to Search", url=f"https://t.me/{client.me.username}?startgroup=true")]
-            ])
-
-            warning_msg = await message.reply_text(
-                f"⚠️ **Hey {message.from_user.mention}!**\n\n"
-                f"To search for movies or post queries, you must first add **{REQUIRED_INVITES} members** to this group.\n"
-                f"🔒 *Your messaging is temporarily restricted for 5 seconds.*",
-                reply_markup=keyboard
-            )
-
-            await asyncio.sleep(8)
-            await warning_msg.delete()
-
-        except Exception as e:
-            print(f"Error handling movie search restriction: {e}")
 
 # Admin Settings Command Panel
 @app.on_message(filters.command("settings") & filters.group)
