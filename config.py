@@ -1,8 +1,11 @@
+import re
 import os
+from os import environ
+
 
 # Telegram API Credentials (Replace values or use Koyeb Environment Variables)
-API_ID = int(os.environ.get("API_ID", 12345678))
-API_HASH = os.environ.get("API_HASH", "your_api_hash_here")
+API_ID = int(os.environ.get("API_ID", 15671595))
+API_HASH = os.environ.get("API_HASH", "bb8f36f9c39a24c7f8b2acbc7ea8c60a")
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "your_bot_token_here")
 
 # Start Message Picture (Direct Image URL)
