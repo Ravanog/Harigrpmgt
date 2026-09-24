@@ -9,6 +9,7 @@ from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, ChatPermissions
 from config import API_ID, API_HASH, BOT_TOKEN, REQUIRED_INVITES, ADMINS
 from start import register_start_handlers
+from pyrogram.types import ChatPermissions
 
 # --- Health Check Server for Cloud Port 8080 ---
 class HealthCheckHandler(BaseHTTPRequestHandler):
@@ -185,6 +186,127 @@ async def elite_security_pipeline(client: Client, message: Message):
 
         except Exception as e:
             print(f"Error handling movie search restriction: {e}")
+
+@app.on_message(filters.command("unrestrict") & filters.group)
+async def unrestrict_command(client: Client, message: Message):
+    chat_id = message.chat.id
+    user_id = message.from_user.id
+
+    # Check if the sender is an admin
+    if not await is_admin(client, chat_id, user_id):
+        await message.reply_text("❌ Only group administrators can use this command.")
+        return
+
+    # Check if the command was used as a reply to a user
+    if not message.reply_to_message or not message.reply_to_message.from_user:
+        await message.reply_text("⚠️ Please reply to the user's message whom you want to unrestrict using `/unrestrict`.")
+        return
+
+    target_user = message.reply_to_message.from_user
+    
+    try:
+        # Restore full default chat permissions to the user
+        await client.restrict_chat_member(
+            chat_id=chat_id,
+            user_id=target_user.id,
+            permissions=ChatPermissions(
+                can_send_messages=True,
+                can_send_media_messages=True,
+                can_send_other_messages=True,
+                can_add_web_page_previews=True
+            )
+        )
+        await message.reply_text(f"✅ Successfully unrestricted {target_user.mention}! They can now chat freely.")
+    except Exception as e:
+        await message.reply_text(f"❌ Failed to unrestrict user. Make sure I have 'Ban Users' admin rights.\nError: {e}")
+        
+@app.on_message(filters.command("ban") & filters.group)
+async def ban_command(client: Client, message: Message):
+    chat_id = message.chat.id
+    if not await is_admin(client, chat_id, message.from_user.id):
+        await message.reply_text("❌ Admins only!")
+        return
+    if not message.reply_to_message or not message.reply_to_message.from_user:
+        await message.reply_text("⚠️ Reply to a user's message with `/ban` to ban them.")
+        return
+    
+    target = message.reply_to_message.from_user
+    try:
+        await client.ban_chat_member(chat_id, target.id)
+        await message.reply_text(f"🔨 Banned {target.mention} successfully!")
+    except Exception as e:
+        await message.reply_text(f"❌ Error: {e}")
+
+@app.on_message(filters.command("mute") & filters.group)
+async def mute_command(client: Client, message: Message):
+    chat_id = message.chat.id
+    if not await is_admin(client, chat_id, message.from_user.id):
+        await message.reply_text("❌ Admins only!")
+        return
+    if not message.reply_to_message or not message.reply_to_message.from_user:
+        await message.reply_text("⚠️ Reply to a user's message with `/mute` to mute them.")
+        return
+    
+    target = message.reply_to_message.from_user
+    try:
+        await client.restrict_chat_member(
+            chat_id=chat_id,
+            user_id=target.id,
+            permissions=ChatPermissions(can_send_messages=False)
+        )
+        await message.reply_text(f"🔒 Muted {target.mention} successfully!")
+    except Exception as e:
+        await message.reply_text(f"❌ Error: {e}")
+
+@app.on_message(filters.command("pin") & filters.group)
+async def pin_command(client: Client, message: Message):
+    chat_id = message.chat.id
+    if not await is_admin(client, chat_id, message.from_user.id):
+        await message.reply_text("❌ Admins only!")
+        return
+    if not message.reply_to_message:
+        await message.reply_text("⚠️ Reply to the message you want to pin with `/pin`.")
+        return
+    
+    try:
+        await message.reply_to_message.pin(disable_notification=False)
+        await message.reply_text("📌 Message pinned successfully!")
+    except Exception as e:
+        await message.reply_text(f"❌ Error: Make sure I have 'Pin Messages' admin rights.\n{e}")
+        
+ @app.on_message(filters.command("purge") & filters.group)
+async def purge_command(client: Client, message: Message):
+    chat_id = message.chat.id
+    if not await is_admin(client, chat_id, message.from_user.id):
+        await message.reply_text("❌ Admins only!")
+        return
+    if not message.reply_to_message:
+        await message.reply_text("⚠️ Reply to the starting message you want to purge from.")
+        return
+
+    start_message_id = message.reply_to_message.id
+    current_message_id = message.id
+    
+    message_ids = []
+    for msg_id in range(start_message_id, current_message_id + 1):
+        message_ids.append(msg_id)
+        # Telegram allows batch deleting up to 100 messages at a time
+        if len(message_ids) == 100:
+            try:
+                await client.delete_messages(chat_id, message_ids)
+            except:
+                pass
+            message_ids = []
+            
+    if message_ids:
+        try:
+            await client.delete_messages(chat_id, message_ids)
+        except:
+            pass
+            
+    # Clean up the purge command itself
+    await message.delete()
+
 
 # Admin Settings Command Panel
 @app.on_message(filters.command("settings") & filters.group)
