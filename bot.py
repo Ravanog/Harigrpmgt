@@ -2,6 +2,7 @@ import os
 import re
 import json
 import threading
+import asyncio
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, ChatPermissions
@@ -72,11 +73,11 @@ async def is_admin(client: Client, chat_id: int, user_id: int):
 
 URL_REGEX = r"(https?://\S+|www\.\S+|t\.me/\S+|telegram\.dog/\S+|bit\.ly/\S+|whatsapp\.com/\S+|chat\.whatsapp\.com/\S+|discord\.gg/\S+|instagram\.com/\S+)"
 SPAM_KEYWORDS = [
-    "xxx", "hardcore", "homemade", "cheating", "massage", 
+    "xxx", "hardcore", "xnxx", "stepsister", "homemade", "cheating", "massage", 
     "daily leak", "nsfw", "18+", "hot video", "sex chat", "adult video", "onlyfans"
 ]
 
-# --- Welcome Message Handler with Config Text & Dual Channel Buttons ---
+# --- Welcome Message Handler with Config Text, Dual Channel Buttons & Auto-Delete ---
 @app.on_message(filters.new_chat_members & filters.group)
 async def welcome_new_members(client: Client, message: Message):
     for new_user in message.new_chat_members:
@@ -96,12 +97,26 @@ async def welcome_new_members(client: Client, message: Message):
         )
         
         try:
-            await message.reply_text(
+            # Send the welcome message and store the sent message object
+            sent_msg = await message.reply_text(
                 formatted_welcome,
                 reply_markup=keyboard
             )
+            
+            # Schedule the message to be deleted after 60 seconds (1 minute)
+            asyncio.create_task(auto_delete_welcome(client, message.chat.id, sent_msg.id))
+            
         except Exception as e:
             print(f"Error sending welcome message: {e}")
+
+async def auto_delete_welcome(client: Client, chat_id: int, message_id: int):
+    # Wait for 60 seconds
+    await asyncio.sleep(60)
+    try:
+        await client.delete_messages(chat_id, message_id)
+    except Exception as e:
+        print(f"Error auto-deleting welcome message: {e}")
+
 
 # --- Group Rules Command ---
 @app.on_message(filters.command("rules") & filters.group)
