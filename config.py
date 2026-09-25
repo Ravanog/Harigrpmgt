@@ -52,12 +52,21 @@ GROUP_RULES = os.environ.get(
 
 HELP_TXT = os.environ.get(
     "HELP_TXT",
-    "🛠️ **Elite Guard Bot - Help Menu**\n\n"
-    "• `/settings` - Open interactive security & filter toggles (Admins only)\n"
-    "• `/setwelcome [text]` - Set custom welcome message\n"
-    "• `/setchannel1 [link]` - Set or update Channel 1 button link\n"
-    "• `/setchannel2 [link]` - Set or update Channel 2 button link\n"
-    "• `/rules` - View group guidelines\n"
-    "• `/ban` / `/mute` / `/unrestrict` / `/pin` / `/purge` - Admin moderation tools"
+    "🛠️ **Elite Guard Bot — Help Menu**\n\n"
+            "⚙️ **Security & Configuration:**\n"
+            "• `/settings` — Open interactive security & filter toggles *(Admins)*\n"
+            "• `/rules` — View group guidelines & rules\n\n"
+            "👋 **Welcome & Channels:**\n"
+            "• `/setwelcome [text]` — Set custom welcome message\n"
+            "• `/setchannel1 [link]` — Set or update Channel 1 button\n"
+            "• `/setchannel2 [link]` — Set or update Channel 2 button\n\n"
+            "⚡ **Admin Moderation Tools:**\n"
+            "• `/ban` — Permanently ban replied user\n"
+            "• `/mute` — Restrict replied user from chatting\n"
+            "• `/unrestrict` — Restore user permissions\n"
+            "• `/pin` — Pin replied message with alert\n"
+            "• `/purge` — Bulk delete messages\n"
+            "• `/users` — View group stats & analytics\n"
+            "• `/groups` — List all connected groups *(Owner only)*"
 )
 
