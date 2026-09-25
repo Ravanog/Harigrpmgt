@@ -1,22 +1,53 @@
 from pyrogram import Client, filters
-from pyrogram.types import Message
-from bot import is_admin, get_stats_counts, db
+from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
+from bot import get_stats_counts, db
 
 groups_col = db["connected_groups"]
 
-@Client.on_message(filters.command("users") & filters.group)
+@Client.on_message(filters.command("users") & (filters.group | filters.private))
 async def total_users_command(client: Client, message: Message):
+    if message.chat.type.name == "PRIVATE":
+        cursor = groups_col.find({})
+        groups = await cursor.to_list(length=None)
+        
+        if not groups:
+            await message.reply_text("📂 My bot is not connected to any groups yet.")
+            return
+        
+        buttons = []
+        for g in groups:
+            chat_id = g.get("chat_id")
+            title = g.get("title", "Unnamed Group")
+            buttons.append([InlineKeyboardButton(title, callback_data=f"stats_select_{chat_id}")])
+            
+        await message.reply_text(
+            "📊 **Bot Analytics & Statistics (PM)**\n\n"
+            "Select a group to view its analytics:",
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+        return
+
     chat_id = message.chat.id
     user_id = message.from_user.id
-
+    from bot import is_admin
     if not await is_admin(client, chat_id, user_id):
         await message.reply_text("❌ Only group administrators can check bot statistics.")
         return
 
-    # Unpack all 4 values returned by get_stats_counts()
     total_count, muted_count, banned_count, group_count = await get_stats_counts()
 
     await message.reply_text(
+        f"📊 **Bot Analytics & Moderation Statistics**\n\n"
+        f"🏢 **Connected Groups:** `{group_count}`\n"
+        f"👥 **Total Unique Users Tracked:** `{total_count}`\n"
+        f"🔒 **Currently Muted Users:** `{muted_count}`\n"
+        f"🔨 **Total Banned Users:** `{banned_count}`"
+    )
+
+@Client.on_callback_query(filters.regex(r"^stats_select_"))
+async def select_group_stats(client: Client, callback_query: CallbackQuery):
+    total_count, muted_count, banned_count, group_count = await get_stats_counts()
+    await callback_query.message.edit_text(
         f"📊 **Bot Analytics & Moderation Statistics**\n\n"
         f"🏢 **Connected Groups:** `{group_count}`\n"
         f"👥 **Total Unique Users Tracked:** `{total_count}`\n"
@@ -35,7 +66,6 @@ async def connected_groups_list_command(client: Client, message: Message):
     groups = await cursor.to_list(length=None)
     
     total_groups = len(groups)
-    
     if total_groups == 0:
         await message.reply_text("📂 My bot is currently not connected to any groups.")
         return
