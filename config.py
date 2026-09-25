@@ -43,26 +43,25 @@ RULES_TXT = (
     "1. Be respectful to all members.\n"
     "2. No spam, unauthorized links, or advertisements.\n"
     "3. No NSFW, abusive, or hate speech content.\n"
-    "4. Listen to and respect administrators.
+    "4. Listen to and respect administrators."
 )
 
 HELP_TXT = os.environ.get(
     "HELP_TXT",
     "🛠️ **Elite Guard Bot — Help Menu**\n\n"
-            "⚙️ **Security & Configuration:**\n"
-            "• `/settings` — Open interactive security & filter toggles *(Admins)*\n"
-            "• `/rules` — View group guidelines & rules\n\n"
-            "👋 **Welcome & Channels:**\n"
-            "• `/setwelcome [text]` — Set custom welcome message\n"
-            "• `/setchannel1 [link]` — Set or update Channel 1 button\n"
-            "• `/setchannel2 [link]` — Set or update Channel 2 button\n\n"
-            "⚡ **Admin Moderation Tools:**\n"
-            "• `/ban` — Permanently ban replied user\n"
-            "• `/mute` — Restrict replied user from chatting\n"
-            "• `/unrestrict` — Restore user permissions\n"
-            "• `/pin` — Pin replied message with alert\n"
-            "• `/purge` — Bulk delete messages\n"
-            "• `/users` — View group stats & analytics\n"
-            "• `/groups` — List all connected groups *(Owner only)*"
+    "⚙️ **Security & Configuration:**\n"
+    "• `/settings` — Open interactive security & filter toggles *(Admins)*\n"
+    "• `/rules` — View group guidelines & rules\n\n"
+    "👋 **Welcome & Channels:**\n"
+    "• `/setwelcome [text]` — Set custom welcome message\n"
+    "• `/setchannel1 [link]` — Set or update Channel 1 button\n"
+    "• `/setchannel2 [link]` — Set or update Channel 2 button\n\n"
+    "⚡ **Admin Moderation Tools:**\n"
+    "• `/ban` — Permanently ban replied user\n"
+    "• `/mute` — Restrict replied user from chatting\n"
+    "• `/unrestrict` — Restore user permissions\n"
+    "• `/pin` — Pin replied message with alert\n"
+    "• `/purge` — Bulk delete messages\n"
+    "• `/users` — View group stats & analytics\n"
+    "• `/groups` — List all connected groups *(Owner only)*"
 )
-
