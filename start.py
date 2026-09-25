@@ -1,61 +1,43 @@
 from pyrogram import Client, filters
-from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
-from config import START_PIC
-from script import Script
+from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
+from config import START_PIC, START_TXT, HELP_TXT
 
 def register_start_handlers(app: Client):
-
-    @app.on_message(filters.command("start"))
-    async def start_handler(client: Client, message: Message):
-        if message.chat.type.name == "PRIVATE":
-            keyboard = InlineKeyboardMarkup([
-                [InlineKeyboardButton("➕ Add Bot To Your Group", url=f"https://t.me/{client.me.username}?startgroup=true")],
-                [
-                    InlineKeyboardButton("📖 Documentation", callback_data="docs_menu"),
-                    InlineKeyboardButton("ℹ️ About", callback_data="about_menu")
-                ]
-            ])
-            
-            caption_text = Script.START_TEXT.format(first_name=message.from_user.first_name)
-            
-            await message.reply_photo(
-                photo=START_PIC,
-                caption=caption_text,
-                reply_markup=keyboard
-            )
-        else:
-            await message.reply_text("🟢 **Elite Guard Daemon is active.** Use `/settings` to manage group rules.")
-
-    @app.on_callback_query(filters.regex("docs_menu"))
-    async def docs_callback(client: Client, callback_query: CallbackQuery):
-        kb = InlineKeyboardMarkup([[InlineKeyboardButton("« Back", callback_data="main_menu")]])
-        await callback_query.message.edit_caption(
-            caption=Script.HELP_TEXT,
-            reply_markup=kb
-        )
-        await callback_query.answer()
-
-    @app.on_callback_query(filters.regex("about_menu"))
-    async def about_callback(client: Client, callback_query: CallbackQuery):
-        kb = InlineKeyboardMarkup([[InlineKeyboardButton("« Back", callback_data="main_menu")]])
-        await callback_query.message.edit_caption(
-            caption=Script.ABOUT_TEXT,
-            reply_markup=kb
-        )
-        await callback_query.answer()
-
-    @app.on_callback_query(filters.regex("main_menu"))
-    async def main_menu_callback(client: Client, callback_query: CallbackQuery):
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("➕ Add Bot To Your Group", url=f"https://t.me/{client.me.username}?startgroup=true")],
-            [
-                InlineKeyboardButton("📖 Documentation", callback_data="docs_menu"),
-                InlineKeyboardButton("ℹ️ About", callback_data="about_menu")
-            ]
+    @app.on_message(filters.command("start") & filters.private)
+    async def start_private_handler(client: Client, message: Message):
+        caption = START_TXT.format(user=message.from_user.mention)
+        reply_markup = InlineKeyboardMarkup([
+            [InlineKeyboardButton("➕ Add Me To Your Group", url=f"https://t.me/{client.me.username}?startgroup=true")],
+            [InlineKeyboardButton("❓ Help & Commands", callback_data="help_menu")]
         ])
         
+        if START_PIC:
+            try:
+                await message.reply_photo(photo=START_PIC, caption=caption, reply_markup=reply_markup)
+                return
+            except Exception:
+                pass
+        
+        await message.reply_text(caption, reply_markup=reply_markup)
+
+    @app.on_callback_query(filters.regex("help_menu"))
+    async def help_callback(client: Client, callback_query):
         await callback_query.message.edit_caption(
-            caption=Script.MAIN_MENU_TEXT,
-            reply_markup=keyboard
+            caption=HELP_TXT,
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔙 Back", callback_data="back_start")]
+            ])
+        )
+        await callback_query.answer()
+
+    @app.on_callback_query(filters.regex("back_start"))
+    async def back_start_callback(client: Client, callback_query):
+        caption = START_TXT.format(user=callback_query.from_user.mention)
+        await callback_query.message.edit_caption(
+            caption=caption,
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("➕ Add Me To Your Group", url=f"https://t.me/{client.me.username}?startgroup=true")],
+                [InlineKeyboardButton("❓ Help & Commands", callback_data="help_menu")]
+            ])
         )
         await callback_query.answer()
