@@ -1,90 +1,106 @@
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
-from bot import get_chat_config, update_chat_config, is_admin, toggle_welcome_status
+from bot import get_chat_config, update_chat_config, toggle_welcome_status, groups_col
 
-@Client.on_message(filters.command("settings") & filters.group)
+@Client.on_message(filters.command("settings") & (filters.group | filters.private))
 async def settings_command(client: Client, message: Message):
-    chat_id = message.chat.id
     user_id = message.from_user.id
-
-    if not await is_admin(client, chat_id, user_id):
-        await message.reply_text("❌ Only group administrators can access the security settings panel.")
+    
+    # If used in Private Chat, let the user choose a group
+    if message.chat.type.name == "PRIVATE":
+        cursor = groups_col.find({})
+        groups = await cursor.to_list(length=None)
+        
+        if not groups:
+            await message.reply_text("📂 My bot is not connected to any groups yet. Add me to a group first!")
+            return
+        
+        buttons = []
+        for g in groups:
+            chat_id = g.get("chat_id")
+            title = g.get("title", "Unnamed Group")
+            buttons.append([InlineKeyboardButton(title, callback_data=f"cfg_select_{chat_id}")])
+        
+        await message.reply_text(
+            "⚙️ **Group Settings Manager (PM)**\n\n"
+            "Select the group you want to configure:",
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
         return
 
-    kb = await get_settings_keyboard(chat_id)
+    # If used in a Group
+    chat_id = message.chat.id
+    from bot import is_admin
+    if not await is_admin(client, chat_id, user_id):
+        await message.reply_text("❌ Only group administrators can open settings.")
+        return
+
+    config = await get_chat_config(chat_id)
+    keyboard = get_settings_keyboard(chat_id, config)
+    
     await message.reply_text(
-        "⚙️ **Advanced Group Security & Control Panel**\n\n"
-        "Tap any option below to toggle it **On** or **Off** instantly:",
-        reply_markup=kb
+        f"⚙️ **Group Security & Management Settings**\n"
+        f"🏢 **Group:** `{message.chat.title}`\n\n"
+        f"Configure your security filters and options below:",
+        reply_markup=keyboard
     )
 
-async def get_settings_keyboard(chat_id: int):
-    config = await get_chat_config(chat_id)
-    
-    welcome_status = "✅ On" if config.get("welcome_enabled", True) else "❌ Off"
-    link_status = "✅ On" if config.get("anti_link", True) else "❌ Off"
-    fwd_status = "✅ On" if config.get("anti_forward", True) else "❌ Off"
-    nsfw_status = "✅ On" if config.get("anti_nsfw", True) else "❌ Off"
-    autodelete_status = "✅ On (3s)" if config.get("auto_delete_all", False) else "❌ Off"
-    action_status = "🔒 Mute" if config.get("action", "restrict") == "restrict" else "🔨 Ban"
-
+def get_settings_keyboard(chat_id, config):
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton(f"Welcome Message: {welcome_status}", callback_data=f"toggle_welcome_{chat_id}")],
-        [InlineKeyboardButton(f"Anti-Link Filter: {link_status}", callback_data=f"toggle_link_{chat_id}")],
-        [InlineKeyboardButton(f"Anti-Forward Filter: {fwd_status}", callback_data=f"toggle_fwd_{chat_id}")],
-        [InlineKeyboardButton(f"Anti-NSFW Filter: {nsfw_status}", callback_data=f"toggle_nsfw_{chat_id}")],
-        [InlineKeyboardButton(f"Auto-Delete All (3s): {autodelete_status}", callback_data=f"toggle_autodelete_{chat_id}")],
-        [InlineKeyboardButton("🔗 Edit Channel 1 Button", callback_data=f"edit_chan1_{chat_id}")],
-        [InlineKeyboardButton("🔗 Edit Channel 2 Button", callback_data=f"edit_chan2_{chat_id}")],
-        [InlineKeyboardButton(f"Punishment Type: {action_status}", callback_data=f"toggle_action_{chat_id}")],
-        [InlineKeyboardButton("🔄 Refresh Panel", callback_data=f"refresh_{chat_id}")]
+        [
+            InlineKeyboardButton(f"Welcome: {'🟢 ON' if config.get('welcome_enabled') else '🔴 OFF'}", callback_data=f"toggle_wel_{chat_id}"),
+            InlineKeyboardButton(f"Auto-Delete: {'🟢 ON' if config.get('auto_delete_all') else '🔴 OFF'}", callback_data=f"toggle_del_{chat_id}")
+        ],
+        [
+            InlineKeyboardButton(f"Anti-Link: {'🟢 ON' if config.get('anti_link') else '🔴 OFF'}", callback_data=f"toggle_link_{chat_id}"),
+            InlineKeyboardButton(f"Anti-Forward: {'🟢 ON' if config.get('anti_forward') else '🔴 OFF'}", callback_data=f"toggle_fwd_{chat_id}")
+        ],
+        [
+            InlineKeyboardButton(f"Anti-NSFW: {'🟢 ON' if config.get('anti_nsfw') else '🔴 OFF'}", callback_data=f"toggle_nsfw_{chat_id}"),
+            InlineKeyboardButton(f"Action: {config.get('action', 'restrict').upper()}", callback_data=f"toggle_action_{chat_id}")
+        ]
     ])
 
-@Client.on_callback_query(filters.regex(r"^toggle_|^refresh_|^edit_chan"))
-async def callback_security_handler(client: Client, callback_query: CallbackQuery):
-    data = callback_query.data
-    parts = data.split("_")
-    chat_id = int(parts[-1])
-    user_id = callback_query.from_user.id
-
-    if not await is_admin(client, chat_id, user_id):
-        await callback_query.answer("❌ Admins only!", show_alert=True)
-        return
-
-    if data.startswith("edit_chan1") or data.startswith("edit_chan2"):
-        chan_num = "1" if "chan1" in data else "2"
-        await callback_query.message.reply_text(
-            f"💡 **How to update Channel {chan_num} link:**\n\n"
-            f"Send command in group: `/setchannel{chan_num} https://t.me/your_channel`\n"
-            f"*(Send `/setchannel{chan_num}` alone to delete the button).* "
-        )
-        await callback_query.answer()
-        return
-
-    action_type = "_".join(parts[:-1])
+@Client.on_callback_query(filters.regex(r"^cfg_select_"))
+async def select_group_settings(client: Client, callback_query: CallbackQuery):
+    chat_id = int(callback_query.data.split("_")[2])
     config = await get_chat_config(chat_id)
+    keyboard = get_settings_keyboard(chat_id, config)
+    
+    await callback_query.message.edit_text(
+        f"⚙️ **Group Security & Management Settings**\n\n"
+        f"Configure your security filters and options below:",
+        reply_markup=keyboard
+    )
 
-    updates = {}
-    if action_type == "toggle_welcome":
-        await toggle_welcome_status(chat_id)
-    elif action_type == "toggle_link":
-        updates["anti_link"] = not config.get("anti_link", True)
-    elif action_type == "toggle_fwd":
-        updates["anti_forward"] = not config.get("anti_forward", True)
-    elif action_type == "toggle_nsfw":
-        updates["anti_nsfw"] = not config.get("anti_nsfw", True)
-    elif action_type == "toggle_autodelete":
-        updates["auto_delete_all"] = not config.get("auto_delete_all", False)
-    elif action_type == "toggle_action":
+@Client.on_callback_query(filters.regex(r"^toggle_"))
+async def toggle_setting_callback(client: Client, callback_query: CallbackQuery):
+    data_parts = callback_query.data.split("_")
+    action_type = data_parts[1]
+    chat_id = int(data_parts[2])
+    
+    config = await get_chat_config(chat_id)
+    
+    if action_type == "wel":
+        new_val = not config.get("welcome_enabled", True)
+        await update_chat_config(chat_id, {"welcome_enabled": new_val})
+    elif action_type == "del":
+        new_val = not config.get("auto_delete_all", False)
+        await update_chat_config(chat_id, {"auto_delete_all": new_val})
+    elif action_type == "link":
+        new_val = not config.get("anti_link", True)
+        await update_chat_config(chat_id, {"anti_link": new_val})
+    elif action_type == "fwd":
+        new_val = not config.get("anti_forward", True)
+        await update_chat_config(chat_id, {"anti_forward": True})
+    elif action_type == "nsfw":
+        new_val = not config.get("anti_nsfw", True)
+        await update_chat_config(chat_id, {"anti_nsfw": new_val})
+    elif action_type == "action":
         current = config.get("action", "restrict")
-        updates["action"] = "ban" if current == "restrict" else "restrict"
-
-    if updates:
-        await update_chat_config(chat_id, updates)
-
-    try:
-        kb = await get_settings_keyboard(chat_id)
-        await callback_query.message.edit_reply_markup(reply_markup=kb)
-        await callback_query.answer("Settings updated successfully!")
-    except Exception:
-        await callback_query.answer()
+        new_val = "ban" if current == "restrict" else "restrict"
+        await update_chat_config(chat_id, {"action": new_val})
+        
+    updated_config = await get_chat_config(chat_id)
+    await callback_query.message.edit_reply_markup(reply_markup=get_settings_keyboard(chat_id, updated_config))
+    await callback_query.answer("Settings updated successfully!")
