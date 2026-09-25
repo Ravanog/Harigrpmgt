@@ -5,7 +5,7 @@ from pyrogram import Client
 from motor.motor_asyncio import AsyncIOMotorClient
 from config import (
     API_ID, API_HASH, BOT_TOKEN, MONGO_URL, DB_NAME, 
-    WELCOME_TXT, CHANNEL_1, CHANNEL_2, REQUIRED_INVITES
+    WELCOME_TXT, CHANNEL_1, CHANNEL_2, REQUIRED_INVITES, RULES_TXT
 )
 from start import register_start_handlers
 
