@@ -1,3 +1,4 @@
+import asyncio
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from bot import get_chat_config, update_chat_config, toggle_welcome_status, groups_col
@@ -50,13 +51,9 @@ def get_settings_keyboard(chat_id, config):
     return InlineKeyboardMarkup([
         [
             InlineKeyboardButton(f"Welcome: {'🟢 ON' if config.get('welcome_enabled') else '🔴 OFF'}", callback_data=f"toggle_wel_{chat_id}"),
-            InlineKeyboardButton(f"Auto-Delete: {'🟢 ON' if config.get('auto_delete_all') else '🔴 OFF'}", callback_data=f"toggle_del_{chat_id}")
-        ],
-        [
+            InlineKeyboardButton(f"Auto-Delete: {'🟢 ON' if config.get('auto_delete_all') else '🔴 OFF'}", callback_data=f"toggle_del_{chat_id}"),
             InlineKeyboardButton(f"Anti-Link: {'🟢 ON' if config.get('anti_link') else '🔴 OFF'}", callback_data=f"toggle_link_{chat_id}"),
-            InlineKeyboardButton(f"Anti-Forward: {'🟢 ON' if config.get('anti_forward') else '🔴 OFF'}", callback_data=f"toggle_fwd_{chat_id}")
-        ],
-        [
+            InlineKeyboardButton(f"Anti-Forward: {'🟢 ON' if config.get('anti_forward') else '🔴 OFF'}", callback_data=f"toggle_fwd_{chat_id}"),
             InlineKeyboardButton(f"Anti-NSFW: {'🟢 ON' if config.get('anti_nsfw') else '🔴 OFF'}", callback_data=f"toggle_nsfw_{chat_id}"),
             InlineKeyboardButton(f"Action: {config.get('action', 'restrict').upper()}", callback_data=f"toggle_action_{chat_id}")
         ]
@@ -86,13 +83,28 @@ async def rules_command(client: Client, message: Message):
     # Pulls the custom saved rules, or falls back to RULES_TXT from config.py
     rules_text = config.get("rules_text", RULES_TXT)
     
-    await message.reply_text(rules_text)
+    # Send the rules message
+    sent_msg = await message.reply_text(rules_text)
+    
+    # Delete the user's /rules command message to keep chat clean
+    try:
+        await message.delete()
+    except Exception:
+        pass
+
+    # Wait for 10 seconds, then delete the bot's rules response message
+    await asyncio.sleep(10)
+    try:
+        await sent_msg.delete()
+    except Exception:
+        pass
 
 @Client.on_message(filters.command("setrules") & filters.group)
 async def set_rules_command(client: Client, message: Message):
     chat_id = message.chat.id
     user_id = message.from_user.id
     
+    from bot import is_admin
     if not await is_admin(client, chat_id, user_id):
         await message.reply_text("❌ Only group administrators can update the rules.")
         return
@@ -128,7 +140,7 @@ async def toggle_setting_callback(client: Client, callback_query: CallbackQuery)
         await update_chat_config(chat_id, {"anti_link": new_val})
     elif action_type == "fwd":
         new_val = not config.get("anti_forward", True)
-        await update_chat_config(chat_id, {"anti_forward": True})
+        await update_chat_config(chat_id, {"anti_forward": new_val})  # Fixed toggle bug here
     elif action_type == "nsfw":
         new_val = not config.get("anti_nsfw", True)
         await update_chat_config(chat_id, {"anti_nsfw": new_val})
