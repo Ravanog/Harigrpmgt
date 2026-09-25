@@ -63,6 +63,7 @@ async def get_chat_config(chat_id: int):
             "chat_id": str_id,
             "welcome_enabled": True,
             "welcome_text": WELCOME_TXT,
+            "rules_text": RULES_TXT,
             "channel_1": CHANNEL_1,
             "channel_2": CHANNEL_2,
             "required_invites": REQUIRED_INVITES,
