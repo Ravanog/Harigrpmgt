@@ -14,6 +14,9 @@ ADMINS = [int(x) for x in os.environ.get("ADMINS", "8363515444").split(",") if x
 CHANNEL_LINK_1 = "https://t.me/+Fey8agWUFMBkNDk1"
 CHANNEL_LINK_2 = "https://t.me/hari_moviez"
 
+# MongoDB Configuration
+MONGO_URL = os.environ.get("MONGO_URL", "mongodb+srv://your_username:your_password@cluster.mongodb.net/?retryWrites=true&w=majority")
+DB_NAME = "hari_elite_bot"
 
 WELCOME_TEXT = (
     "👋 **Welcome {user} to {group}!**\n\n"
