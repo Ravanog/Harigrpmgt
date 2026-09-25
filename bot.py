@@ -46,6 +46,7 @@ db = mongo_client[DB_NAME]
 settings_col = db["group_settings"]
 violations_col = db["user_violations"]
 stats_col = db["bot_stats"]
+groups_col = db["connected_groups"]
 
 # --- Database Helper Functions ---
 async def get_chat_config(chat_id: int):
@@ -88,11 +89,6 @@ async def update_channel_link(chat_id: int, channel_key: str, link: str):
     str_id = str(chat_id)
     await settings_col.update_one({"chat_id": str_id}, {"$set": {channel_key: link}}, upsert=True)
 
-async def get_violation_count(chat_id: int, user_id: int):
-    key = f"{chat_id}_{user_id}"
-    doc = await violations_col.find_one({"key": key})
-    return doc.get("count", 0) if doc else 0
-
 async def increment_violation_count(chat_id: int, user_id: int):
     key = f"{chat_id}_{user_id}"
     doc = await violations_col.find_one_and_update(
@@ -121,9 +117,10 @@ async def remove_muted_user(user_id: int):
 
 async def get_stats_counts():
     doc = await stats_col.find_one({"type": "global_stats"})
+    total_groups = await groups_col.count_documents({})
     if not doc:
-        return 0, 0, 0
-    return len(doc.get("users", [])), len(doc.get("muted_users", [])), len(doc.get("banned_users", []))
+        return 0, 0, 0, total_groups
+    return len(doc.get("users", [])), len(doc.get("muted_users", [])), len(doc.get("banned_users", [])), total_groups
 
 async def is_admin(client: Client, chat_id: int, user_id: int):
     from config import ADMINS
