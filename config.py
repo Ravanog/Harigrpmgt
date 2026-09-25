@@ -38,16 +38,12 @@ WELCOME_TXT = os.environ.get(
     "👋 Welcome {user} to **{group}**!\n\n📜 Please read the group rules and enjoy your stay!"
 )
 
-GROUP_RULES = os.environ.get(
-    "GROUP_RULES",
-    """📜 **Elite Group Rules & Guidelines**
-
-1️⃣ Be respectful to all members. No hate speech or harassment.
-2️⃣ No spamming, unauthorized advertising, or referral links.
-3️⃣ No NSFW/sexual content or explicit media sharing.
-4️⃣ Keep discussions relevant to the group's topic.
-
-⚠️ *Failure to follow rules will result in mutes or permanent bans.*"""
+RULES_TXT = (
+    "📜 **Official Group Rules:**\n\n"
+    "1. Be respectful to all members.\n"
+    "2. No spam, unauthorized links, or advertisements.\n"
+    "3. No NSFW, abusive, or hate speech content.\n"
+    "4. Listen to and respect administrators.
 )
 
 HELP_TXT = os.environ.get(
