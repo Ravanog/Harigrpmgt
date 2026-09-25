@@ -18,7 +18,7 @@ CHANNEL_2 = os.environ.get("CHANNEL_2", "https://t.me/hari_moviez")  # Default c
 REQUIRED_INVITES = int(os.environ.get("REQUIRED_INVITES", "3"))
 
 # MongoDB Configuration
-MONGO_URL = os.environ.get("MONGO_URL", "mongodb+srv://your_username:your_password@cluster.mongodb.net/?retryWrites=true&w=majority")
+MONGO_URL = os.environ.get("MONGO_URL", "mongodb+srv://anikush8310_db_user:YLhManFE9BAMvdyV@cluster0.0aqtvqw.mongodb.net/?appName=Cluster0")
 DB_NAME = "hari_elite_bot"
 
 
