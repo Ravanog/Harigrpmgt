@@ -19,12 +19,18 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         return
 
+class ReusableHTTPServer(HTTPServer):
+    allow_reuse_address = True
+
 def run_health_server():
     port = int(os.environ.get("PORT", 8080))
     server_address = ('0.0.0.0', port)
-    httpd = HTTPServer(server_address, HealthCheckHandler)
-    print(f"Health-check server listening on port {port}...")
-    httpd.serve_forever()
+    try:
+        httpd = ReusableHTTPServer(server_address, HealthCheckHandler)
+        print(f"Health-check server listening on port {port}...")
+        httpd.serve_forever()
+    except Exception as e:
+        print(f"Health server error: {e}")
 
 threading.Thread(target=run_health_server, daemon=True).start()
 # --------------------------------------------------------
