@@ -11,28 +11,53 @@ BOT_TOKEN = os.environ.get("BOT_TOKEN", "8932762816:AAHH4bYkyQ1a-Ujcbgsl5isu026G
 # Global Bot Admins / Owners (Put your Telegram User ID(s) here)
 ADMINS = [int(x) for x in os.environ.get("ADMINS", "8363515444").split(",") if x.strip().isdigit()]
 
-CHANNEL_LINK_1 = "https://t.me/+Fey8agWUFMBkNDk1"
-CHANNEL_LINK_2 = "https://t.me/hari_moviez"
+# --- Media & Customization Variables ---
+START_PIC = os.environ.get("START_PIC", "https://files.catbox.moe/9oc9ai.jpg")
+CHANNEL_1 = os.environ.get("CHANNEL_1", "https://t.me/+2dygCeQ4oGcwY2M9")  # Default channel 1 button link
+CHANNEL_2 = os.environ.get("CHANNEL_2", "https://t.me/hari_moviez")  # Default channel 2 button link
+REQUIRED_INVITES = int(os.environ.get("REQUIRED_INVITES", "3"))
 
 # MongoDB Configuration
 MONGO_URL = os.environ.get("MONGO_URL", "mongodb+srv://your_username:your_password@cluster.mongodb.net/?retryWrites=true&w=majority")
 DB_NAME = "hari_elite_bot"
 
-WELCOME_TEXT = (
-    "👋 **Welcome {user} to {group}!**\n\n"
-    "We're glad to have you here. Please make sure to read the group rules "
-    "and join our update channels below!"
+
+# ==========================================
+# --- CENTRALIZED TEXT TEMPLATES & STRINGS ---
+# ==========================================
+
+START_TXT = os.environ.get(
+    "START_TXT",
+    "👋 Hello {user}!\n\n"
+    "I am your **Elite Group Guard Bot**, equipped with toggleable security filters, anti-link, "
+    "anti-forward, anti-NSFW, 3-second global message auto-delete, and custom welcome management."
 )
 
-GROUP_RULES = (
-    "📜 **Group Rules & Guidelines:**\n\n"
-    "1️⃣ **No Spam / Links:** Unauthorized web or Telegram links will be automatically deleted, and users will be restricted.\n"
-    "2️⃣ **No Forwards:** Forwarded promotional messages are strictly prohibited.\n"
-    "3️⃣ **Be Respectful:** Treat all members with respect. No hate speech or toxic behavior.\n"
-    "4️⃣ **No Adult/NSFW Content:** Sharing explicit or prohibited content leads to an immediate ban."
+WELCOME_TXT = os.environ.get(
+    "WELCOME_TXT",
+    "👋 Welcome {user} to **{group}**!\n\n📜 Please read the group rules and enjoy your stay!"
 )
-# Start Message Picture (Direct Image URL)
-START_PIC = "https://files.catbox.moe/9oc9ai.jpg"
 
-# Required members count to unlock movie searches
-REQUIRED_INVITES = 3
+GROUP_RULES = os.environ.get(
+    "GROUP_RULES",
+    """📜 **Elite Group Rules & Guidelines**
+
+1️⃣ Be respectful to all members. No hate speech or harassment.
+2️⃣ No spamming, unauthorized advertising, or referral links.
+3️⃣ No NSFW/sexual content or explicit media sharing.
+4️⃣ Keep discussions relevant to the group's topic.
+
+⚠️ *Failure to follow rules will result in mutes or permanent bans.*"""
+)
+
+HELP_TXT = os.environ.get(
+    "HELP_TXT",
+    "🛠️ **Elite Guard Bot - Help Menu**\n\n"
+    "• `/settings` - Open interactive security & filter toggles (Admins only)\n"
+    "• `/setwelcome [text]` - Set custom welcome message\n"
+    "• `/setchannel1 [link]` - Set or update Channel 1 button link\n"
+    "• `/setchannel2 [link]` - Set or update Channel 2 button link\n"
+    "• `/rules` - View group guidelines\n"
+    "• `/ban` / `/mute` / `/unrestrict` / `/pin` / `/purge` - Admin moderation tools"
+)
+
