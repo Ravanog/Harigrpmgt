@@ -11,8 +11,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of your application code
 COPY . .
 
-# Expose the port the app runs on
-EXPOSE 5000
+# Expose the port Koyeb/health-check uses (Port 8080)
+EXPOSE 8080
 
-# Run Gunicorn binding to all network interfaces on port 5000
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
+# Run the Telegram bot script directly
+CMD ["python", "bot.py"]
