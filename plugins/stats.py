@@ -4,15 +4,33 @@ from bot import is_admin, get_stats_counts, db
 
 groups_col = db["connected_groups"]
 
+@Client.on_message(filters.command("users") & filters.group)
+async def total_users_command(client: Client, message: Message):
+    chat_id = message.chat.id
+    user_id = message.from_user.id
+
+    if not await is_admin(client, chat_id, user_id):
+        await message.reply_text("❌ Only group administrators can check bot statistics.")
+        return
+
+    # Unpack all 4 values returned by get_stats_counts()
+    total_count, muted_count, banned_count, group_count = await get_stats_counts()
+
+    await message.reply_text(
+        f"📊 **Bot Analytics & Moderation Statistics**\n\n"
+        f"🏢 **Connected Groups:** `{group_count}`\n"
+        f"👥 **Total Unique Users Tracked:** `{total_count}`\n"
+        f"🔒 **Currently Muted Users:** `{muted_count}`\n"
+        f"🔨 **Total Banned Users:** `{banned_count}`"
+    )
+
 @Client.on_message(filters.command("groups") & (filters.group | filters.private))
 async def connected_groups_list_command(client: Client, message: Message):
-    # Optional: Restrict to bot global admins from config.py
     from config import ADMINS
     if message.from_user.id not in ADMINS:
         await message.reply_text("❌ This command is restricted to bot administrators only.")
         return
 
-    # Fetch all connected groups from MongoDB
     cursor = groups_col.find({})
     groups = await cursor.to_list(length=None)
     
@@ -22,7 +40,6 @@ async def connected_groups_list_command(client: Client, message: Message):
         await message.reply_text("📂 My bot is currently not connected to any groups.")
         return
 
-    # Format the list of groups (showing up to 30 to prevent message length overflow)
     group_lines = []
     for idx, g in enumerate(groups[:30], 1):
         title = g.get("title", "Unknown Group")
@@ -39,22 +56,3 @@ async def connected_groups_list_command(client: Client, message: Message):
         text += f"\n\n*(Showing first 30 out of {total_groups} groups)*"
 
     await message.reply_text(text)
-    
-
-@Client.on_message(filters.command("users") & filters.group)
-async def total_users_command(client: Client, message: Message):
-    chat_id = message.chat.id
-    user_id = message.from_user.id
-
-    if not await is_admin(client, chat_id, user_id):
-        await message.reply_text("❌ Only group administrators can check bot statistics.")
-        return
-
-    total_count, muted_count, banned_count = await get_stats_counts()
-
-    await message.reply_text(
-        f"📊 **Bot Analytics & Moderation Statistics**\n\n"
-        f"👥 **Total Unique Users Tracked:** `{total_count}`\n"
-        f"🔒 **Currently Muted Users:** `{muted_count}`\n"
-        f"🔨 **Total Banned Users:** `{banned_count}`"
-    )
