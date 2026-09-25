@@ -1,6 +1,7 @@
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from bot import get_chat_config, update_chat_config, toggle_welcome_status, groups_col
+from config import RULES_TXT
 
 @Client.on_message(filters.command("settings") & (filters.group | filters.private))
 async def settings_command(client: Client, message: Message):
@@ -72,6 +73,41 @@ async def select_group_settings(client: Client, callback_query: CallbackQuery):
         f"Configure your security filters and options below:",
         reply_markup=keyboard
     )
+
+@Client.on_message(filters.command("rules") & (filters.group | filters.private))
+async def rules_command(client: Client, message: Message):
+    if message.chat.type.name == "PRIVATE":
+        await message.reply_text("⚠️ Please use `/rules` inside a specific group chat to view its guidelines.")
+        return
+        
+    chat_id = message.chat.id
+    config = await get_chat_config(chat_id)
+    
+    # Pulls the custom saved rules, or falls back to RULES_TXT from config.py
+    rules_text = config.get("rules_text", RULES_TXT)
+    
+    await message.reply_text(rules_text)
+
+@Client.on_message(filters.command("setrules") & filters.group)
+async def set_rules_command(client: Client, message: Message):
+    chat_id = message.chat.id
+    user_id = message.from_user.id
+    
+    if not await is_admin(client, chat_id, user_id):
+        await message.reply_text("❌ Only group administrators can update the rules.")
+        return
+
+    if len(message.command) < 2:
+        await message.reply_text(
+            "⚠️ **Invalid Usage:**\n"
+            "Please provide the rules text after the command.\n\n"
+            "**Example:**\n`/setrules 1. No spam\n2. Be nice`"
+        )
+        return
+
+    new_rules = message.text.split(None, 1)[1]
+    await update_chat_config(chat_id, {"rules_text": new_rules})
+    await message.reply_text("✅ Group rules have been successfully updated!")
 
 @Client.on_callback_query(filters.regex(r"^toggle_"))
 async def toggle_setting_callback(client: Client, callback_query: CallbackQuery):
