@@ -51,10 +51,15 @@ def get_settings_keyboard(chat_id, config):
     return InlineKeyboardMarkup([
         [
             InlineKeyboardButton(f"Welcome: {'🟢 ON' if config.get('welcome_enabled') else '🔴 OFF'}", callback_data=f"toggle_wel_{chat_id}"),
+        ],[
             InlineKeyboardButton(f"Auto-Delete: {'🟢 ON' if config.get('auto_delete_all') else '🔴 OFF'}", callback_data=f"toggle_del_{chat_id}"),
+        ],[
             InlineKeyboardButton(f"Anti-Link: {'🟢 ON' if config.get('anti_link') else '🔴 OFF'}", callback_data=f"toggle_link_{chat_id}"),
+        ],[
             InlineKeyboardButton(f"Anti-Forward: {'🟢 ON' if config.get('anti_forward') else '🔴 OFF'}", callback_data=f"toggle_fwd_{chat_id}"),
+        ],[
             InlineKeyboardButton(f"Anti-NSFW: {'🟢 ON' if config.get('anti_nsfw') else '🔴 OFF'}", callback_data=f"toggle_nsfw_{chat_id}"),
+        ],[
             InlineKeyboardButton(f"Action: {config.get('action', 'restrict').upper()}", callback_data=f"toggle_action_{chat_id}")
         ]
     ])
